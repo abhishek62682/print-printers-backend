@@ -9,7 +9,7 @@ import testimonialRouter from "./router/testimonial-router.js"
 import blogRouter from "./router/blog-router.js"
 const app = express();
 import enquiryRouter from "./router/enquiry-router.js"
-
+import profileRouter from "./router/profile-router.js"
 const allowedOrigins = [
   process.env.FRONTEND_DOMAIN_LANDING,
   process.env.FRONTEND_DOMAIN_ADMIN
@@ -31,9 +31,11 @@ app.use("/api/uploads", express.static(path.join(process.cwd(), "uploads")));
 app.use("/api/auth" , authRouter);
 app.use("/api/testimonials" , testimonialRouter);
 app.use("/api/blogs",       blogRouter);  
-
+app.use("/api/profile" , profileRouter)
 app.use("/api/enquiries",enquiryRouter);
+import dashboardRouter from "./router/dashboard-router.js";
 
+app.use("/api/dashboard", dashboardRouter )
 app.use(globalErrorHandler)
 
 app.get("/" , function (req,res){

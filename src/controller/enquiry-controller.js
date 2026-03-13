@@ -17,21 +17,29 @@ export const createEnquiry = async (req, res, next) => {
 
 export const getAllEnquiries = async (req, res, next) => {
   try {
-    // page and limit are already Numbers — transformed by zod
-    const { productType, country, status, page, limit } = req.query;
-
+    // page, limit → Numbers | startDate, endDate → Date objects (transformed by Zod)
+    const { productType, country, status, page, limit, startDate, endDate } = req.query;
+ 
     const filter = {};
     if (productType) filter.productType = productType;
-    if (country)     filter.country = { $regex: country, $options: "i" };
-    if (status)      filter.status = status;
-
+    if (country)     filter.country     = { $regex: country, $options: "i" };
+    if (status)      filter.status      = status;
+ 
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) filter.createdAt.$gte = startDate;
+      if (endDate)   filter.createdAt.$lte = endDate;
+    }
+ 
     const skip = (page - 1) * limit;
-
+ 
     const [enquiries, total] = await Promise.all([
       Enquiry.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
       Enquiry.countDocuments(filter),
     ]);
-
+ 
+    const totalPages = Math.ceil(total / limit);
+ 
     return res.status(200).json({
       success: true,
       message: "Enquiries fetched successfully.",
@@ -40,8 +48,8 @@ export const getAllEnquiries = async (req, res, next) => {
         total,
         page,
         limit,
-        totalPages: Math.ceil(total / limit),
-        hasNextPage: page < Math.ceil(total / limit),
+        totalPages,
+        hasNextPage: page < totalPages,
         hasPrevPage: page > 1,
       },
     });
@@ -49,7 +57,34 @@ export const getAllEnquiries = async (req, res, next) => {
     next(error);
   }
 };
-
+ 
+// ── Export all matching enquiries — no pagination limit ───────────────────
+export const exportEnquiries = async (req, res, next) => {
+  try {
+    const { productType, country, status, startDate, endDate } = req.query;
+ 
+    const filter = {};
+    if (productType) filter.productType = productType;
+    if (country)     filter.country     = { $regex: country, $options: "i" };
+    if (status)      filter.status      = status;
+ 
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) filter.createdAt.$gte = startDate;
+      if (endDate)   filter.createdAt.$lte = endDate;
+    }
+ 
+    const enquiries = await Enquiry.find(filter).sort({ createdAt: -1 }).lean();
+ 
+    return res.status(200).json({
+      success: true,
+      message: "Enquiries exported successfully.",
+      data: enquiries,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 export const getEnquiryById = async (req, res, next) => {
   try {
     const enquiry = await Enquiry.findById(req.params.id);

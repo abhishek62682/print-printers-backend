@@ -45,9 +45,14 @@ export const updateTestimonialSchema = z.object({
       .trim()
       .optional(),
 
-    // formdata sends string not boolean so we accept "true" | "false"
+   
     isActive: z
       .enum(["true", "false"], { message: "isActive must be true or false" })
+      .optional(),
+
+   
+    removeImage: z
+      .enum(["true", "false"], { message: "removeImage must be true or false" })
       .optional(),
   }),
 

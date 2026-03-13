@@ -89,26 +89,32 @@ const deleteImageFromDisk = (imagePath) => {
 const updateTestimonial = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, designation, content, isActive } = req.body;
+    const { name, designation, content, isActive, removeImage } = req.body;
 
     const testimonial = await Testimonial.findById(id);
     if (!testimonial) {
       return next(createHttpError(404, "Testimonial not found."));
     }
 
-    const imageUrl = req.file ? req.file.path : undefined;
+    const newImageUrl = req.file ? req.file.path : undefined;
 
-    // ✅ Delete old image from disk if a new one is uploaded
-    if (imageUrl && testimonial.imageUrl) {
+    // ✅ New image uploaded — delete old one from disk
+    if (newImageUrl && testimonial.imageUrl) {
+      deleteImageFromDisk(testimonial.imageUrl);
+    }
+
+    // ✅ User clicked Remove — delete old image, set imageUrl to null
+    if (!newImageUrl && removeImage === "true" && testimonial.imageUrl) {
       deleteImageFromDisk(testimonial.imageUrl);
     }
 
     const updatedData = {
-      ...(name && { name }),
+      ...(name        && { name }),
       ...(designation && { designation }),
-      ...(content && { content }),
+      ...(content     && { content }),
       ...(isActive !== undefined && { isActive }),
-      ...(imageUrl && { imageUrl }),
+      ...(newImageUrl            && { imageUrl: newImageUrl }),
+      ...(!newImageUrl && removeImage === "true" && { imageUrl: null }),
     };
 
     const updated = await Testimonial.findByIdAndUpdate(id, updatedData, {
