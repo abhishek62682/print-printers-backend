@@ -1,10 +1,8 @@
 import createHttpError from "http-errors";
 import fs from "fs";
 import Blog from "../model/blog-model.js";
+import logActivity from "../utils/log-activity.js";
 
-// ─────────────────────────────────────────────
-// Helper
-// ─────────────────────────────────────────────
 const deleteImageFromDisk = (imagePath) => {
   if (!imagePath) return;
   fs.unlink(imagePath, (err) => {
@@ -12,24 +10,68 @@ const deleteImageFromDisk = (imagePath) => {
   });
 };
 
-// ─────────────────────────────────────────────
-// POST /api/admin/blogs
-// ─────────────────────────────────────────────
+// ✅ Helper to safely parse JSON strings
+const parseJSON = (str, defaultValue = null) => {
+  if (!str) return defaultValue;
+  try {
+    return typeof str === "string" ? JSON.parse(str) : str;
+  } catch {
+    return defaultValue;
+  }
+};
+
 const createBlog = async (req, res, next) => {
   try {
-    const { title, content, tags, isActive } = req.body;
+    const { 
+      title, 
+      content, 
+      excerpt,
+      tags, 
+      coverImageAlt,
+      bannerImageAlt,
+      seo,
+      isActive 
+    } = req.body;
 
     const coverImage  = req.files?.coverImage?.[0]?.path  ?? null;
     const bannerImage = req.files?.bannerImage?.[0]?.path ?? null;
 
-    const blog = await Blog.create({
+    const blogData = {
       title,
       content,
+      excerpt: excerpt || null,
       coverImage,
+      coverImageAlt: coverImageAlt || "",
       bannerImage,
-      tags:      tags ? JSON.parse(tags) : [],
-      createdBy: req.userId,
-      isActive:  isActive || true,
+      bannerImageAlt: bannerImageAlt || "",
+      tags: parseJSON(tags, []),
+      createdBy: req.user._id,
+      isActive: isActive === "true" || isActive === true,
+    };
+
+    // ✅ Parse SEO properly
+    if (seo) {
+      const parsedSeo = parseJSON(seo, {});
+      blogData.seo = {
+        metaTitle: parsedSeo.metaTitle || "",
+        metaDescription: parsedSeo.metaDescription || "",
+        metaKeywords: Array.isArray(parsedSeo.metaKeywords) ? parsedSeo.metaKeywords : [],
+        canonicalUrl: parsedSeo.canonicalUrl || "",
+      };
+    }
+
+    const blog = await Blog.create(blogData);
+    await blog.populate("createdBy", "username email");
+
+    await logActivity({
+      userId: req.user._id,
+      action: "CREATE",
+      module: "BLOG",
+      targetId: blog._id,
+      targetLabel: blog.title,
+      ipAddress: req.ip,
+      userAgent: req.get("user-agent"),
+      status: "SUCCESS",
     });
 
     res.status(201).json({
@@ -38,13 +80,18 @@ const createBlog = async (req, res, next) => {
       data: blog,
     });
   } catch (err) {
+    await logActivity({
+      userId: req.user._id,
+      action: "CREATE",
+      module: "BLOG",
+      ipAddress: req.ip,
+      userAgent: req.get("user-agent"),
+      status: "FAILED",
+    });
     next(err);
   }
 };
 
-// ─────────────────────────────────────────────
-// GET /api/admin/blogs  (admin — paginated, all statuses)
-// ─────────────────────────────────────────────
 const getAllBlogs = async (req, res, next) => {
   try {
     const page  = req.query.page  ?? 1;
@@ -97,12 +144,9 @@ const getAllBlogs = async (req, res, next) => {
   }
 };
 
-// ─────────────────────────────────────────────
-// GET /api/blogs  (public — active only, no pagination)
-// ─────────────────────────────────────────────
 const getPublicBlogs = async (req, res, next) => {
   try {
-    const filter = { isActive: true };  // public always sees active only
+    const filter = { isActive: true };
 
     if (req.query.tag) {
       filter.tags = req.query.tag;
@@ -118,7 +162,7 @@ const getPublicBlogs = async (req, res, next) => {
     const blogs = await Blog.find(filter)
       .populate("createdBy", "username email")
       .sort({ createdAt: -1 })
-      .select("title slug coverImage tags createdAt createdBy"); // only needed fields
+      .select("title slug coverImage coverImageAlt excerpt tags createdAt createdBy");
 
     res.status(200).json({
       success: true,
@@ -130,9 +174,6 @@ const getPublicBlogs = async (req, res, next) => {
   }
 };
 
-// ─────────────────────────────────────────────
-// GET /api/admin/blogs/:id  (admin — by ID)
-// ─────────────────────────────────────────────
 const getBlogById = async (req, res, next) => {
   try {
     const blog = await Blog.findById(req.params.id).populate("createdBy", "username email");
@@ -148,12 +189,8 @@ const getBlogById = async (req, res, next) => {
   }
 };
 
-// ─────────────────────────────────────────────
-// GET /api/blogs/:slug  (public — by slug)
-// ─────────────────────────────────────────────
 const getBlogBySlug = async (req, res, next) => {
   try {
-    console.log(req.params.slug)
     const blog = await Blog.findOne({
       slug:     req.params.slug,
       isActive: true,
@@ -161,14 +198,13 @@ const getBlogBySlug = async (req, res, next) => {
 
     if (!blog) return next(createHttpError(404, "Blog not found."));
 
-    // Fetch 3 recent blogs excluding the current one
     const recentBlogs = await Blog.find({
-      _id:      { $ne: blog._id },   // exclude current blog
+      _id:      { $ne: blog._id },
       isActive: true,
     })
       .sort({ createdAt: -1 })
       .limit(3)
-      .select("title slug coverImage createdAt");  // only needed fields
+      .select("title slug coverImage coverImageAlt excerpt createdAt");
 
     res.status(200).json({
       success: true,
@@ -181,13 +217,20 @@ const getBlogBySlug = async (req, res, next) => {
   }
 };
 
-// ─────────────────────────────────────────────
-// PATCH /api/admin/blogs/:id
-// ─────────────────────────────────────────────
 const updateBlog = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { title, content, tags, isActive } = req.body;
+
+    const { 
+      title, 
+      content, 
+      excerpt,
+      tags, 
+      coverImageAlt,
+      bannerImageAlt,
+      seo,
+      isActive 
+    } = req.body;
 
     const blog = await Blog.findById(id);
     if (!blog) return next(createHttpError(404, "Blog not found."));
@@ -195,22 +238,48 @@ const updateBlog = async (req, res, next) => {
     const coverImage  = req.files?.coverImage?.[0]?.path  ?? undefined;
     const bannerImage = req.files?.bannerImage?.[0]?.path ?? undefined;
 
-    // Delete old images from disk if new ones uploaded
     if (coverImage  && blog.coverImage)  deleteImageFromDisk(blog.coverImage);
     if (bannerImage && blog.bannerImage) deleteImageFromDisk(blog.bannerImage);
 
     const updatedData = {
       ...(title    !== undefined && { title }),
       ...(content  !== undefined && { content }),
-      ...(tags     !== undefined && { tags: JSON.parse(tags) }),
-      ...(isActive !== undefined && { isActive: isActive === "true" }),
+      ...(excerpt  !== undefined && { excerpt }),
+      ...(tags     !== undefined && { tags: parseJSON(tags, blog.tags) }),
+      ...(coverImageAlt !== undefined && { coverImageAlt }),
+      ...(bannerImageAlt !== undefined && { bannerImageAlt }),
+      ...(isActive !== undefined && { isActive: isActive === "true" || isActive === true }),
       ...(coverImage  && { coverImage }),
       ...(bannerImage && { bannerImage }),
     };
 
+    // ✅ Parse SEO properly on update
+    if (seo !== undefined) {
+      const parsedSeo = parseJSON(seo, {});
+      updatedData.seo = {
+        metaTitle: parsedSeo.metaTitle || blog.seo?.metaTitle || "",
+        metaDescription: parsedSeo.metaDescription || blog.seo?.metaDescription || "",
+        metaKeywords: Array.isArray(parsedSeo.metaKeywords) 
+          ? parsedSeo.metaKeywords 
+          : blog.seo?.metaKeywords || [],
+        canonicalUrl: parsedSeo.canonicalUrl || blog.seo?.canonicalUrl || "",
+      };
+    }
+
     const updated = await Blog.findByIdAndUpdate(id, updatedData, {
-      new:          true,
+      returnDocument: 'after',
       runValidators: true,
+    }).populate("createdBy", "username email");
+
+    await logActivity({
+      userId: req.user._id,
+      action: "UPDATE",
+      module: "BLOG",
+      targetId: updated._id,
+      targetLabel: updated.title,
+      ipAddress: req.ip,
+      userAgent: req.get("user-agent"),
+      status: "SUCCESS",
     });
 
     res.status(200).json({
@@ -219,13 +288,19 @@ const updateBlog = async (req, res, next) => {
       data: updated,
     });
   } catch (err) {
+    await logActivity({
+      userId: req.user._id,
+      action: "UPDATE",
+      module: "BLOG",
+      targetId: req.params.id,
+      ipAddress: req.ip,
+      userAgent: req.get("user-agent"),
+      status: "FAILED",
+    });
     next(err);
   }
 };
 
-// ─────────────────────────────────────────────
-// DELETE /api/admin/blogs/:id
-// ─────────────────────────────────────────────
 const deleteBlog = async (req, res, next) => {
   try {
     const blog = await Blog.findByIdAndDelete(req.params.id);
@@ -234,12 +309,32 @@ const deleteBlog = async (req, res, next) => {
     deleteImageFromDisk(blog.coverImage);
     deleteImageFromDisk(blog.bannerImage);
 
+    await logActivity({
+      userId: req.user._id,
+      action: "DELETE",
+      module: "BLOG",
+      targetId: req.params.id,
+      targetLabel: blog.title,
+      ipAddress: req.ip,
+      userAgent: req.get("user-agent"),
+      status: "SUCCESS",
+    });
+
     res.status(200).json({
       success: true,
       message: "Blog deleted successfully.",
       data: null,
     });
   } catch (err) {
+    await logActivity({
+      userId: req.user._id,
+      action: "DELETE",
+      module: "BLOG",
+      targetId: req.params.id,
+      ipAddress: req.ip,
+      userAgent: req.get("user-agent"),
+      status: "FAILED",
+    });
     next(err);
   }
 };

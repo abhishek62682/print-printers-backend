@@ -2,7 +2,7 @@ import express from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import authenticate from "../middlewares/autheticate.js";
+import { authenticate, authorizeRole } from "../middlewares/autheticate.js"; // ✅ Updated import
 import validate from "../middlewares/validate.js";
 import { updateProfileSchema, changePasswordSchema } from "../validators/profile-validator.js";
 import { getProfile, updateProfile, changePassword } from "../controller/profile-controller.js";
@@ -39,9 +39,33 @@ const upload = multer({
   limits: { fileSize: 2 * 1024 * 1024 }, // 2MB max
 });
 
-// ── Routes (all protected) ────────────────────────────────────────────────
-router.get(  "/",                authenticate,                                                    getProfile);
-router.patch("/",                authenticate, upload.single("profileImage"), validate(updateProfileSchema),  updateProfile);
-router.patch("/change-password", authenticate,                                validate(changePasswordSchema), changePassword);
+// ── Routes (all authenticated users - both roles) ────────────────────────────────
+
+// ✅ Get profile - all authenticated users
+router.get(
+  "/",                
+  authenticate,
+  authorizeRole("SUPER_ADMIN", "BLOG_MANAGER"),
+  getProfile
+);
+
+// ✅ Update profile - all authenticated users
+router.patch(
+  "/",                
+  authenticate, 
+  authorizeRole("SUPER_ADMIN", "BLOG_MANAGER"),
+  upload.single("profileImage"), 
+  validate(updateProfileSchema),  
+  updateProfile
+);
+
+// ✅ Change password - all authenticated users
+router.patch(
+  "/change-password", 
+  authenticate, 
+  authorizeRole("SUPER_ADMIN", "BLOG_MANAGER"),
+  validate(changePasswordSchema), 
+  changePassword
+);
 
 export default router;

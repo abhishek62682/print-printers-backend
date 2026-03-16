@@ -11,7 +11,7 @@ import {
   deleteBlog,
   getPublicBlogs,
 } from "../controller/blog-controller.js";
-import authenticate from "../middlewares/autheticate.js";
+import { authenticate, authorizeRole } from "../middlewares/autheticate.js"; // ✅ Updated import
 import validate from "../middlewares/validate.js";
 import {
   createBlogSchema,
@@ -58,18 +58,55 @@ const uploadFields = upload.fields([
 const router = express.Router();
 
 // ─────────────────────────────────────────────
-// Public Routes
+// Public Routes (no auth needed)
 // ─────────────────────────────────────────────
 router.get("/public",          validate(getBlogsQuerySchema),  getPublicBlogs);
 router.get("/public/:slug",    validate(getBlogBySlugSchema),  getBlogBySlug);
 
 // ─────────────────────────────────────────────
-// Admin Routes (protected)
+// Protected Routes (auth + role required)
 // ─────────────────────────────────────────────
-router.get("/",                authenticate, validate(getBlogsQuerySchema),  getAllBlogs);
-router.get("/:id",             authenticate, validate(getBlogByIdSchema),    getBlogById);
-router.post("/",               authenticate, uploadFields, validate(createBlogSchema),  createBlog);
-router.patch("/:id",           authenticate, uploadFields, validate(updateBlogSchema),  updateBlog);
-router.delete("/:id",          authenticate, validate(deleteBlogSchema),               deleteBlog);
+
+// ✅ Both SUPER_ADMIN and BLOG_MANAGER can view all blogs
+router.get("/",                
+  authenticate, 
+  authorizeRole("SUPER_ADMIN", "BLOG_MANAGER"),
+  validate(getBlogsQuerySchema),  
+  getAllBlogs
+);
+
+// ✅ Both can get blog by ID
+router.get("/:id",             
+  authenticate, 
+  authorizeRole("SUPER_ADMIN", "BLOG_MANAGER"),
+  validate(getBlogByIdSchema),    
+  getBlogById
+);
+
+// ✅ Both can create blogs (owner will be set in controller)
+router.post("/",               
+  authenticate, 
+  authorizeRole("SUPER_ADMIN", "BLOG_MANAGER"),
+  uploadFields, 
+  validate(createBlogSchema),  
+  createBlog
+);
+
+// ✅ Both can update blogs (controller checks ownership for BLOG_MANAGER)
+router.patch("/:id",           
+  authenticate, 
+  authorizeRole("SUPER_ADMIN", "BLOG_MANAGER"),
+  uploadFields, 
+  validate(updateBlogSchema),  
+  updateBlog
+);
+
+// ✅ Both can delete blogs (controller checks ownership for BLOG_MANAGER)
+router.delete("/:id",          
+  authenticate, 
+  authorizeRole("SUPER_ADMIN", "BLOG_MANAGER"),
+  validate(deleteBlogSchema),               
+  deleteBlog
+);
 
 export default router;

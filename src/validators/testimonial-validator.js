@@ -11,7 +11,7 @@ export const createTestimonialSchema = z.object({
     designation: z
       .string()
       .min(1, "Designation is required")
-      .max(100, "Designation cannot exceed 100 characters")
+      .max(300, "Designation cannot exceed 100 characters")
       .trim(),
 
     content: z

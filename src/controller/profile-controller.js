@@ -13,7 +13,7 @@ const deleteImageFromDisk = (imagePath) => {
 // GET /api/profile
 export const getProfile = async (req, res, next) => {
   try {
-    const user = await User.findById(req.userId).select("-password -authSecret");
+    const user = await User.findById(req?.user?._id).select("-password -authSecret");
     if (!user) return next(createError(404, "User not found."));
 
     return res.status(200).json({
@@ -25,6 +25,7 @@ export const getProfile = async (req, res, next) => {
         email:        user.email,
         profileImage: user.profileImage ?? null,
         isVerified:   user.isVerified,
+        role:user.role
       },
     });
   } catch (err) {

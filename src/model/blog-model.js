@@ -14,29 +14,74 @@ const blogSchema = new Schema(
       unique: true,
       lowercase: true,
       trim: true,
+      index: true,
     },
+
     content: {
       type: String,
       required: [true, "Content is required"],
       trim: true,
     },
+
+    excerpt: {
+      type: String,
+      trim: true,
+      maxlength: [300, "Excerpt cannot exceed 300 characters"],
+    },
+
     coverImage: {
       type: String,
       default: null,
     },
+    coverImageAlt: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
     bannerImage: {
       type: String,
       default: null,
     },
+    bannerImageAlt: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    seo: {
+      metaTitle: {
+        type: String,
+        trim: true,
+        maxlength: [60, "Meta title cannot exceed 60 characters"],
+      },
+      metaDescription: {
+        type: String,
+        trim: true,
+        maxlength: [160, "Meta description cannot exceed 160 characters"],
+      },
+      metaKeywords: {
+        type: [String],
+        default: [],
+      },
+      canonicalUrl: {
+        type: String,
+        trim: true,
+        default: "",
+      },
+    },
+
     tags: {
       type: [String],
       default: [],
     },
+
     createdBy: {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: [true, "CreatedBy is required"],
     },
+
     isActive: {
       type: Boolean,
       default: true,
@@ -44,7 +89,6 @@ const blogSchema = new Schema(
   },
   { timestamps: true }
 );
-
 
 blogSchema.pre("save", async function () {
   if (this.isModified("title") || this.isNew) {

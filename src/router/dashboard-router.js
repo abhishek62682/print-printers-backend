@@ -1,9 +1,15 @@
 import { Router } from "express";
 import { getStats } from "../controller/dashboard-controller.js";
-import autheticate from "../middlewares/autheticate.js";
+import { authenticate, authorizeRole } from "../middlewares/autheticate.js"; // ✅ Updated import
 
 const dashboardRouter = Router();
 
-dashboardRouter.get("/", autheticate, getStats);
+// ✅ Both SUPER_ADMIN and BLOG_MANAGER can view dashboard stats
+dashboardRouter.get(
+  "/", 
+  authenticate, 
+  authorizeRole("SUPER_ADMIN", "BLOG_MANAGER"),
+  getStats
+);
 
 export default dashboardRouter;

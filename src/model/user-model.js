@@ -28,9 +28,20 @@ const userSchema = new Schema(
       required: [true, "Password is required"],
       minlength: [6, "Password must be at least 6 characters"],
     },
-    authSecret:   { type: String },
-    isVerified:   { type: Boolean, default: false },
-    profileImage: { type: String, default: null }, // ✅ added
+    role: {
+      type: String,
+      enum: ["SUPER_ADMIN", "BLOG_MANAGER"],
+      default: "BLOG_MANAGER",
+      required: [true, "Role is required"],
+    },
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    authSecret: { type: String },
+    isVerified: { type: Boolean, default: false },
+    profileImage: { type: String, default: null },
   },
   { timestamps: true }
 );
@@ -48,7 +59,7 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
 
 userSchema.methods.generateJWT = function () {
   return jwt.sign(
-    { sub: this._id, email: this.email },
+    { sub: this._id, email: this.email, role: this.role },
     config.jwtSecret || "secretkey",
     { expiresIn: "7d" }
   );

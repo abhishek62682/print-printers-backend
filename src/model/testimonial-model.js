@@ -12,7 +12,7 @@ const testimonialSchema = new Schema(
       type: String,
       required: [true, "Designation is required"],
       trim: true,
-      maxlength: [100, "Designation cannot exceed 100 characters"],
+      maxlength: [300, "Designation cannot exceed 100 characters"],
     },
     content: {
       type: String,

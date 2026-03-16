@@ -5,31 +5,68 @@ import {
   getEnquiryById,
   updateEnquiry,
   deleteEnquiry,
-  exportEnquiries,           // ← new
+  exportEnquiries,
 } from "../controller/enquiry-controller.js";
-import authenticate from "../middlewares/autheticate.js";
+import { authenticate, authorizeRole } from "../middlewares/autheticate.js"; // ✅ Updated import
 import validate from "../middlewares/validate.js";
 import {
   createEnquirySchema,
   updateEnquirySchema,
   getEnquiriesQuerySchema,
-  exportEnquiriesQuerySchema, // ← new
+  exportEnquiriesQuerySchema,
   enquiryParamsSchema,
 } from "../validators/enquiry-validator.js";
 
 const router = express.Router();
 
-// ── Public ────────────────────────────────────────────────────────────────
+// ── Public (no auth needed) ────────────────────────────────────────────────
 router.post("/", validate(createEnquirySchema), createEnquiry);
 
-// ── Protected (admin only) ────────────────────────────────────────────────
-// IMPORTANT: /export must be defined BEFORE /:id — otherwise Express
-// will treat "export" as an :id param and hit the wrong route
-router.get("/export", authenticate, validate(exportEnquiriesQuerySchema), exportEnquiries);
+// ── Protected (SUPER_ADMIN only) ────────────────────────────────────────────
 
-router.get("/",      authenticate, validate(getEnquiriesQuerySchema), getAllEnquiries);
-router.get("/:id",   authenticate, validate(enquiryParamsSchema),     getEnquiryById);
-router.patch("/:id", authenticate, validate(updateEnquirySchema),     updateEnquiry);
-router.delete("/:id",authenticate, validate(enquiryParamsSchema),     deleteEnquiry);
+// ✅ Export enquiries - SUPER_ADMIN only
+router.get(
+  "/export", 
+  authenticate, 
+  authorizeRole("SUPER_ADMIN"),
+  validate(exportEnquiriesQuerySchema), 
+  exportEnquiries
+);
+
+// ✅ Get all enquiries - SUPER_ADMIN only
+router.get(
+  "/",      
+  authenticate, 
+  authorizeRole("SUPER_ADMIN"),
+  validate(getEnquiriesQuerySchema), 
+  getAllEnquiries
+);
+
+// ✅ Get enquiry by ID - SUPER_ADMIN only
+router.get(
+  "/:id",   
+  authenticate, 
+  authorizeRole("SUPER_ADMIN"),
+  validate(enquiryParamsSchema),     
+  getEnquiryById
+);
+
+// ✅ Update enquiry - SUPER_ADMIN only
+router.patch(
+  "/:id", 
+  authenticate, 
+  authorizeRole("SUPER_ADMIN"),
+  validate(updateEnquirySchema),     
+  updateEnquiry
+);
+
+// ✅ Delete enquiry - SUPER_ADMIN only
+router.delete(
+  "/:id",
+  authenticate, 
+  authorizeRole("SUPER_ADMIN"),
+  validate(enquiryParamsSchema),     
+  deleteEnquiry
+);
 
 export default router;

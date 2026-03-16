@@ -9,7 +9,7 @@ import {
   deleteTestimonial,
   getPublicTestimonials,
 } from "../controller/testimonial-controller.js";
-import authenticate from "../middlewares/autheticate.js";
+import { authenticate, authorizeRole } from "../middlewares/autheticate.js"; 
 import { createTestimonialSchema, updateTestimonialSchema } from "../validators/testimonial-validator.js";
 import validate from "../middlewares/validate.js";
 
@@ -44,13 +44,45 @@ const upload = multer({
   limits: { fileSize: 2 * 1024 * 1024 }, // 2MB max
 });
 
-// Public
+// ── Public (no auth needed) ────────────────────────────────────────────────
 router.get("/public", getPublicTestimonials);
-router.get("/", getAllTestimonials);
 
-// Protected
-router.post("/", authenticate, upload.single("image"), validate(createTestimonialSchema), createTestimonial);
-router.patch("/:id", authenticate, upload.single("image"), validate(updateTestimonialSchema), updateTestimonial);
-router.delete("/:id", authenticate, deleteTestimonial);
+// ── Protected (SUPER_ADMIN only) ────────────────────────────────────────────
+
+// ✅ Get all testimonials - SUPER_ADMIN only
+router.get(
+  "/", 
+  authenticate, 
+  authorizeRole("SUPER_ADMIN"),
+  getAllTestimonials
+);
+
+// ✅ Create testimonial - SUPER_ADMIN only
+router.post(
+  "/", 
+  authenticate, 
+  authorizeRole("SUPER_ADMIN"),
+  upload.single("image"), 
+  validate(createTestimonialSchema), 
+  createTestimonial
+);
+
+// ✅ Update testimonial - SUPER_ADMIN only
+router.patch(
+  "/:id", 
+  authenticate, 
+  authorizeRole("SUPER_ADMIN"),
+  upload.single("image"), 
+  validate(updateTestimonialSchema), 
+  updateTestimonial
+);
+
+// ✅ Delete testimonial - SUPER_ADMIN only
+router.delete(
+  "/:id", 
+  authenticate, 
+  authorizeRole("SUPER_ADMIN"),
+  deleteTestimonial
+);
 
 export default router;

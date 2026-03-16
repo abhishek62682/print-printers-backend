@@ -1,11 +1,12 @@
 import express from "express";
 import globalErrorHandler from "./middlewares/globalErrorHandler.js";
-import { config } from "./config/config.js";
 import cors from "cors";
 import path from "path";
-import { fileURLToPath } from "url";
-import authRouter from "./router/user-router.js"
+import authRouter from "./router/auth-router.js"
+import userRouter from "./router/user-router.js"
+import dashboardRouter from "./router/dashboard-router.js";
 import testimonialRouter from "./router/testimonial-router.js"
+import activityRouter from "./router/activitylog-router.js"
 import blogRouter from "./router/blog-router.js"
 const app = express();
 import enquiryRouter from "./router/enquiry-router.js"
@@ -29,11 +30,12 @@ app.use(express.urlencoded({extended:true}));
 app.use("/api/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 app.use("/api/auth" , authRouter);
+app.use("/api/users" , userRouter);
 app.use("/api/testimonials" , testimonialRouter);
 app.use("/api/blogs",       blogRouter);  
 app.use("/api/profile" , profileRouter)
 app.use("/api/enquiries",enquiryRouter);
-import dashboardRouter from "./router/dashboard-router.js";
+app.use("/api/audit-logs" ,activityRouter )
 
 app.use("/api/dashboard", dashboardRouter )
 app.use(globalErrorHandler)

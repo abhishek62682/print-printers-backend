@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-
 const tagsSchema = z
   .string()
   .optional()
@@ -17,6 +16,39 @@ const tagsSchema = z
     { message: "Tags must be a valid JSON array of strings e.g. '[\"tag1\",\"tag2\"]'" }
   );
 
+const metaKeywordsSchema = z
+  .string()
+  .optional()
+  .refine(
+    (val) => {
+      if (!val) return true;
+      try {
+        const parsed = JSON.parse(val);
+        return Array.isArray(parsed) && parsed.every((k) => typeof k === "string");
+      } catch {
+        return false;
+      }
+    },
+    { message: "Meta keywords must be a valid JSON array of strings e.g. '[\"keyword1\",\"keyword2\"]'" }
+  );
+
+// ✅ NEW: SEO Schema that handles string input (from FormData)
+const seoSchema = z
+  .string()
+  .optional()
+  .refine(
+    (val) => {
+      if (!val) return true;
+      try {
+        const parsed = JSON.parse(val);
+        return typeof parsed === "object" && parsed !== null;
+      } catch {
+        return false;
+      }
+    },
+    { message: "SEO must be a valid JSON object" }
+  );
+
 const slugParamSchema = z.object({
   slug: z.string().min(1, "Slug is required").trim(),
 });
@@ -25,9 +57,6 @@ const idParamSchema = z.object({
   id: z.string().regex(/^[a-f\d]{24}$/i, "Invalid blog ID"),
 });
 
-// ─────────────────────────────────────────────
-// ADMIN — Create
-// ─────────────────────────────────────────────
 export const createBlogSchema = z.object({
   body: z.object({
     title: z
@@ -38,7 +67,26 @@ export const createBlogSchema = z.object({
 
     content: z.string().min(1, "Content is required").trim(),
 
+    excerpt: z
+      .string()
+      .max(300, "Excerpt cannot exceed 300 characters")
+      .trim()
+      .optional(),
+
     tags: tagsSchema,
+
+    coverImageAlt: z
+      .string()
+      .trim()
+      .optional(),
+
+    bannerImageAlt: z
+      .string()
+      .trim()
+      .optional(),
+
+    // ✅ FIXED: seo is now a string that gets validated as JSON
+    seo: seoSchema,
 
     isActive: z
       .enum(["true", "false"], { message: "isActive must be 'true' or 'false'" })
@@ -46,9 +94,6 @@ export const createBlogSchema = z.object({
   }),
 });
 
-// ─────────────────────────────────────────────
-// ADMIN — Update  (id in params)
-// ─────────────────────────────────────────────
 export const updateBlogSchema = z.object({
   params: idParamSchema,
 
@@ -63,7 +108,26 @@ export const updateBlogSchema = z.object({
 
       content: z.string().min(1, "Content cannot be empty").trim().optional(),
 
+      excerpt: z
+        .string()
+        .max(300, "Excerpt cannot exceed 300 characters")
+        .trim()
+        .optional(),
+
       tags: tagsSchema,
+
+      coverImageAlt: z
+        .string()
+        .trim()
+        .optional(),
+
+      bannerImageAlt: z
+        .string()
+        .trim()
+        .optional(),
+
+      // ✅ FIXED: seo is now a string that gets validated as JSON
+      seo: seoSchema,
 
       isActive: z
         .enum(["true", "false"], { message: "isActive must be 'true' or 'false'" })
@@ -75,30 +139,18 @@ export const updateBlogSchema = z.object({
     ),
 });
 
-// ─────────────────────────────────────────────
-// ADMIN — Delete  (id in params)
-// ─────────────────────────────────────────────
 export const deleteBlogSchema = z.object({
   params: idParamSchema,
 });
 
-// ─────────────────────────────────────────────
-// ADMIN — Get single blog by ID
-// ─────────────────────────────────────────────
 export const getBlogByIdSchema = z.object({
   params: idParamSchema,
 });
 
-// ─────────────────────────────────────────────
-// PUBLIC — Get single blog by slug
-// ─────────────────────────────────────────────
 export const getBlogBySlugSchema = z.object({
   params: slugParamSchema,
 });
 
-// ─────────────────────────────────────────────
-// ADMIN + PUBLIC — Get all blogs
-// ─────────────────────────────────────────────
 export const getBlogsQuerySchema = z.object({
   query: z.object({
     page: z
