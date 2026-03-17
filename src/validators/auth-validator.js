@@ -48,3 +48,31 @@ export const verifyOtpSchema = z.object({
       .regex(/^\d+$/, "OTP must contain only numbers"),
   }),
 });
+
+// Add to auth-validator.js
+ 
+// ✅ Forgot Password Schema
+export const forgotPasswordSchema = z.object({
+  body: z.object({
+    email: z
+      .string()
+      .email("Please provide a valid email address")
+      .toLowerCase()
+      .trim(),
+  }),
+});
+ 
+// ✅ Reset Password Schema (NO OTP - already verified)
+export const resetPasswordSchema = z.object({
+  body: z.object({
+    email: z
+      .string()
+      .email("Please provide a valid email address")
+      .toLowerCase()
+      .trim(),
+    newPassword: z
+      .string()
+      .min(6, "Password must be at least 6 characters")
+      .max(50, "Password cannot exceed 50 characters"),
+  }),
+});

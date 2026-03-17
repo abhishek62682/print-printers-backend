@@ -1,6 +1,7 @@
 import createError from "http-errors";
 import fs from "node:fs";
 import User from "../model/user-model.js";
+import logActivity from "../utils/log-activity.js";
 
 // ── Helper: delete old image from disk ────────────────────────────────────
 const deleteImageFromDisk = (imagePath) => {
@@ -16,6 +17,7 @@ export const getProfile = async (req, res, next) => {
     const user = await User.findById(req?.user?._id).select("-password -authSecret");
     if (!user) return next(createError(404, "User not found."));
 
+
     return res.status(200).json({
       success: true,
       message: "Profile fetched successfully.",
@@ -25,25 +27,31 @@ export const getProfile = async (req, res, next) => {
         email:        user.email,
         profileImage: user.profileImage ?? null,
         isVerified:   user.isVerified,
-        role:user.role
+        role:         user.role
       },
     });
   } catch (err) {
+    await logActivity({
+      userId: req.user._id,
+      action: "READ",
+      module: "PROFILE",
+      ipAddress: req.ip,
+      userAgent: req.get("user-agent"),
+      status: "FAILED",
+    });
     next(err);
   }
 };
 
 // PATCH /api/profile
-// Updates username and/or profile image
 export const updateProfile = async (req, res, next) => {
   try {
-    const user = await User.findById(req.userId);
+    const user = await User.findById(req?.user?._id);
     if (!user) return next(createError(404, "User not found."));
 
     const { username } = req.body;
     const newImage = req.file ? req.file.path : undefined;
 
-    // Delete old profile image from disk if a new one is uploaded
     if (newImage && user.profileImage) {
       deleteImageFromDisk(user.profileImage);
     }
@@ -52,6 +60,16 @@ export const updateProfile = async (req, res, next) => {
     if (newImage)  user.profileImage = newImage;
 
     await user.save();
+
+    await logActivity({
+      userId: req.user._id,
+      action: "UPDATE",
+      module: "PROFILE",
+      targetLabel: `username: ${user.username}`,
+      ipAddress: req.ip,
+      userAgent: req.get("user-agent"),
+      status: "SUCCESS",
+    });
 
     return res.status(200).json({
       success: true,
@@ -62,9 +80,18 @@ export const updateProfile = async (req, res, next) => {
         email:        user.email,
         profileImage: user.profileImage ?? null,
         isVerified:   user.isVerified,
+        role:         user?.role
       },
     });
   } catch (err) {
+    await logActivity({
+      userId: req.user._id,
+      action: "UPDATE",
+      module: "PROFILE",
+      ipAddress: req.ip,
+      userAgent: req.get("user-agent"),
+      status: "FAILED",
+    });
     next(err);
   }
 };
@@ -72,18 +99,37 @@ export const updateProfile = async (req, res, next) => {
 // PATCH /api/profile/change-password
 export const changePassword = async (req, res, next) => {
   try {
-    const user = await User.findById(req.userId);
+    const user = await User.findById(req.user._id);
     if (!user) return next(createError(404, "User not found."));
 
     const { currentPassword, newPassword } = req.body;
 
     const isMatch = await user.comparePassword(currentPassword);
     if (!isMatch) {
+      await logActivity({
+        userId: req.user._id,
+        action: "UPDATE",
+        module: "PROFILE",
+        targetLabel: "password-change",
+        ipAddress: req.ip,
+        userAgent: req.get("user-agent"),
+        status: "FAILED",
+      });
       return next(createError(400, "Current password is incorrect."));
     }
 
-    user.password = newPassword; // pre-save hook will hash it
+    user.password = newPassword;
     await user.save();
+
+    await logActivity({
+      userId: req.user._id,
+      action: "UPDATE",
+      module: "PROFILE",
+      targetLabel: "password-change",
+      ipAddress: req.ip,
+      userAgent: req.get("user-agent"),
+      status: "SUCCESS",
+    });
 
     return res.status(200).json({
       success: true,
@@ -91,6 +137,15 @@ export const changePassword = async (req, res, next) => {
       data: null,
     });
   } catch (err) {
+    await logActivity({
+      userId: req.user._id,
+      action: "UPDATE",
+      module: "PROFILE",
+      targetLabel: "password-change",
+      ipAddress: req.ip,
+      userAgent: req.get("user-agent"),
+      status: "FAILED",
+    });
     next(err);
   }
 };

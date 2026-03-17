@@ -57,14 +57,17 @@ export const createEnquirySchema = z.object({
 
     projectDescription: z.string().trim().max(3000).optional(),
 
-    howDidYouHear: z
+  howDidYouHear: z
       .enum([
         "Google Search",
         "Social Media",
-        "Referral / Word of Mouth",
-        "Trade Show / Event",
+        "Instagram",
+        "Facebook",
+        "LinkedIn",
+        "Friend / Referral",
+        "Existing Client",
+        "WhatsApp",
         "Advertisement",
-        "Email / Newsletter",
         "Other",
       ])
       .optional(),

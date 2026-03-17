@@ -1,9 +1,14 @@
 import Enquiry from "../model/enquiry-model.js";
 import createHttpError from "http-errors";
+import { sendContactNotificationEmail } from "../utils/send-email.js";
 
 export const createEnquiry = async (req, res, next) => {
   try {
     const enquiry = await Enquiry.create(req.body);
+
+    sendContactNotificationEmail(enquiry).catch((err) => {
+      console.error("Enquiry notification email failed:", err.message);
+    });
 
     return res.status(201).json({
       success: true,

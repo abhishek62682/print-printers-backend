@@ -5,11 +5,14 @@ import  createError  from "http-errors";
 // ✅ GET /users — list all users (SUPER_ADMIN only)
 export const getAllUsers = async (req, res, next) => {
   try {
-    const users = await User.find({ _id: { $ne: req.user._id } })
+    const users = await User.find({
+      _id: { $ne: req.user._id },                          
+      email: { $ne: "print@printprinters.com" },           
+    })
       .select("-password")
       .populate("createdBy", "username email")
       .sort({ createdAt: -1 });
- 
+
     res.status(200).json({
       success: true,
       count: users.length,
@@ -99,21 +102,25 @@ export const updateUserRole = async (req, res, next) => {
   }
 };
 
-// ✅ DELETE /users/:id — remove a user (SUPER_ADMIN only)
 export const deleteUser = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    // Prevent SUPER_ADMIN from deleting themselves
     if (id === req.user._id.toString()) {
       return next(createError(403, "You cannot delete your own account"));
     }
 
-    const user = await User.findByIdAndDelete(id);
+    const user = await User.findById(id);
 
     if (!user) {
       return next(createError(404, "User not found"));
     }
+
+    if (user.isSystemUser) {
+      return next(createError(403, "System users cannot be deleted"));
+    }
+
+    await user.deleteOne();
 
     res.status(200).json({
       success: true,

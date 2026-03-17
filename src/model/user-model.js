@@ -34,6 +34,7 @@ const userSchema = new Schema(
       default: "BLOG_MANAGER",
       required: [true, "Role is required"],
     },
+    isSystemUser: { type: Boolean, default: false },
     createdBy: {
       type: Schema.Types.ObjectId,
       ref: "User",
@@ -42,11 +43,20 @@ const userSchema = new Schema(
     authSecret: { type: String },
     isVerified: { type: Boolean, default: false },
     profileImage: { type: String, default: null },
+    
+    passwordResetVerified: {
+      type: Boolean,
+      default: false,
+    },
+    passwordResetExpiresAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );
 
-// ✅ async pre hook — no next, just return/throw
+
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) return;
   const salt = await bcrypt.genSalt(10);
@@ -63,6 +73,34 @@ userSchema.methods.generateJWT = function () {
     config.jwtSecret || "secretkey",
     { expiresIn: "7d" }
   );
+};
+
+
+userSchema.methods.initiatePasswordReset = function () {
+  this.passwordResetVerified = false;
+  this.passwordResetExpiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+};
+
+
+userSchema.methods.verifyPasswordReset = function () {
+  if (new Date() > this.passwordResetExpiresAt) {
+    return false; // Token expired
+  }
+  this.passwordResetVerified = true;
+  return true;
+};
+
+
+userSchema.methods.isPasswordResetValid = function () {
+  if (!this.passwordResetVerified) return false;
+  if (new Date() > this.passwordResetExpiresAt) return false;
+  return true;
+};
+
+
+userSchema.methods.clearPasswordReset = function () {
+  this.passwordResetVerified = false;
+  this.passwordResetExpiresAt = null;
 };
 
 const User = model("User", userSchema);

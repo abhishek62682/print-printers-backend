@@ -80,17 +80,20 @@ const enquirySchema = new mongoose.Schema(
     },
 
     howDidYouHear: {
-      type: String,
-      enum: [
-        "Google Search",
-        "Social Media",
-        "Referral / Word of Mouth",
-        "Trade Show / Event",
-        "Advertisement",
-        "Email / Newsletter",
-        "Other",
-      ],
-    },
+  type: String,
+  enum: [
+    "Google Search",
+    "Social Media",
+    "Instagram",
+    "Facebook",
+    "LinkedIn",
+    "Friend / Referral",
+    "Existing Client",
+    "WhatsApp",
+    "Advertisement",
+    "Other"
+  ],
+},
 
     status: {
       type: String,

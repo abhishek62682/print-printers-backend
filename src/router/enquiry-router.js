@@ -22,7 +22,6 @@ const router = express.Router();
 // ── Public (no auth needed) ────────────────────────────────────────────────
 router.post("/", validate(createEnquirySchema), createEnquiry);
 
-// ── Protected (SUPER_ADMIN only) ────────────────────────────────────────────
 
 // ✅ Export enquiries - SUPER_ADMIN only
 router.get(

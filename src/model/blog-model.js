@@ -26,7 +26,6 @@ const blogSchema = new Schema(
     excerpt: {
       type: String,
       trim: true,
-      maxlength: [300, "Excerpt cannot exceed 300 characters"],
     },
 
     coverImage: {
@@ -53,12 +52,12 @@ const blogSchema = new Schema(
       metaTitle: {
         type: String,
         trim: true,
-        maxlength: [60, "Meta title cannot exceed 60 characters"],
+        maxlength: [200, "Meta title cannot exceed 200 characters"],
       },
       metaDescription: {
         type: String,
         trim: true,
-        maxlength: [160, "Meta description cannot exceed 160 characters"],
+        maxlength: [400, "Meta description cannot exceed 400 characters"],
       },
       metaKeywords: {
         type: [String],

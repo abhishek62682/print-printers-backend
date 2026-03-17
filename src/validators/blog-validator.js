@@ -69,7 +69,6 @@ export const createBlogSchema = z.object({
 
     excerpt: z
       .string()
-      .max(300, "Excerpt cannot exceed 300 characters")
       .trim()
       .optional(),
 
@@ -85,7 +84,7 @@ export const createBlogSchema = z.object({
       .trim()
       .optional(),
 
-    // ✅ FIXED: seo is now a string that gets validated as JSON
+   
     seo: seoSchema,
 
     isActive: z
