@@ -1,71 +1,67 @@
 import express from "express";
 import {
-  createEnquiry,
-  getAllEnquiries,
-  getEnquiryById,
-  updateEnquiry,
-  deleteEnquiry,
-  exportEnquiries,
-} from "../controller/enquiry-controller.js";
-import { authenticate, authorizeRole } from "../middlewares/autheticate.js"; // ✅ Updated import
+  createRFP,
+  getAllRFPs,
+  getRFPById,
+  updateRFP,
+  deleteRFP,
+  exportRFPs,
+} from "../controller/rfp-controller.js";
+import { authenticate, authorizeRole } from "../middlewares/autheticate.js";
 import validate from "../middlewares/validate.js";
 import {
-  createEnquirySchema,
-  updateEnquirySchema,
-  getEnquiriesQuerySchema,
-  exportEnquiriesQuerySchema,
-  enquiryParamsSchema,
-} from "../validators/enquiry-validator.js";
+  createRFPSchema,
+  updateRFPSchema,
+  getRFPsQuerySchema,
+  exportRFPsQuerySchema,
+  rfpParamsSchema,
+} from "../validators/rfp-validator.js";
 
 const router = express.Router();
 
 // ── Public (no auth needed) ────────────────────────────────────────────────
-router.post("/", validate(createEnquirySchema), createEnquiry);
+router.post("/", validate(createRFPSchema), createRFP);
 
+// ── SUPER_ADMIN only ───────────────────────────────────────────────────────
 
-// ✅ Export enquiries - SUPER_ADMIN only
 router.get(
-  "/export", 
-  authenticate, 
+  "/export",
+  authenticate,
   authorizeRole("SUPER_ADMIN"),
-  validate(exportEnquiriesQuerySchema), 
-  exportEnquiries
+  validate(exportRFPsQuerySchema),
+  exportRFPs
 );
 
-// ✅ Get all enquiries - SUPER_ADMIN only
 router.get(
-  "/",      
-  authenticate, 
+  "/",
+  authenticate,
   authorizeRole("SUPER_ADMIN"),
-  validate(getEnquiriesQuerySchema), 
-  getAllEnquiries
+  validate(getRFPsQuerySchema),
+  getAllRFPs
 );
 
-// ✅ Get enquiry by ID - SUPER_ADMIN only
 router.get(
-  "/:id",   
-  authenticate, 
+  "/:id",
+  authenticate,
   authorizeRole("SUPER_ADMIN"),
-  validate(enquiryParamsSchema),     
-  getEnquiryById
+  validate(rfpParamsSchema),
+  getRFPById
 );
 
-// ✅ Update enquiry - SUPER_ADMIN only
 router.patch(
-  "/:id", 
-  authenticate, 
+  "/:id",
+  authenticate,
   authorizeRole("SUPER_ADMIN"),
-  validate(updateEnquirySchema),     
-  updateEnquiry
+  validate(updateRFPSchema),
+  updateRFP
 );
 
-// ✅ Delete enquiry - SUPER_ADMIN only
 router.delete(
   "/:id",
-  authenticate, 
+  authenticate,
   authorizeRole("SUPER_ADMIN"),
-  validate(enquiryParamsSchema),     
-  deleteEnquiry
+  validate(rfpParamsSchema),
+  deleteRFP
 );
 
 export default router;

@@ -34,7 +34,7 @@ app.use("/api/users" , userRouter);
 app.use("/api/testimonials" , testimonialRouter);
 app.use("/api/blogs",       blogRouter);  
 app.use("/api/profile" , profileRouter)
-app.use("/api/enquiries",enquiryRouter);
+app.use("/api/request-quotes",enquiryRouter);
 app.use("/api/audit-logs" ,activityRouter )
 
 app.use("/api/dashboard", dashboardRouter )

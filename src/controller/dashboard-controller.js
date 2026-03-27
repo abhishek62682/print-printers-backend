@@ -1,6 +1,6 @@
 import createHttpError from "http-errors";
 import Blog from "../model/blog-model.js";
-import Enquiry from "../model/enquiry-model.js";
+import Enquiry from "../model/rfp-model.js";
 import Testimonial from "../model/testimonial-model.js";
 
 export const getStats = async (req, res, next) => {

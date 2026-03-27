@@ -1,41 +1,37 @@
-import { z } from "zod";
 import createHttpError from "http-errors";
 
-export const validate = (schema) => {
+const validate = (schema) => {
   return (req, res, next) => {
-    const parsed = schema.safeParse({
-      body:   req.body,
-      params: req.params,
-      query:  req.query,
-    });
+    const fieldErrors = {};
+    let firstMessage = null;
 
-    if (!parsed.success) {
-      const flattened = parsed.error.flatten();
+    const segments = ["body", "params", "query"];
 
-      const fieldErrors = {
-        ...flattened.fieldErrors,
-        ...(parsed.error.formErrors?.fieldErrors ?? {}),
-      };
+    for (const seg of segments) {
+      if (!schema.shape?.[seg]) continue;
 
-      const errors = Object.entries(fieldErrors).map(([field, messages]) => ({
-        field,
-        message: messages?.[0] ?? "Invalid value",
-      }));
+      const result = schema.shape[seg].safeParse(req[seg]);
 
-      const message =
-        errors[0]?.message ??
-        parsed.error.issues?.[0]?.message ??
-        "Validation failed";
-
-      return next(
-        Object.assign(createHttpError(422, message), { errors })
-      );
+      if (!result.success) {
+        result.error.issues.forEach((issue) => {
+          const key = issue.path.join(".") || seg;
+          if (!fieldErrors[key]) fieldErrors[key] = [];
+          fieldErrors[key].push({ message: issue.message, type: issue.code });
+          if (!firstMessage) firstMessage = issue.message;
+        });
+      } else {
+        if (seg === "body")   req.body   = result.data;
+        if (seg === "params") Object.assign(req.params, result.data);
+        if (seg === "query")  Object.assign(req.query,  result.data);
+      }
     }
 
-    // ✅ attach validated data directly back onto req
-    if (parsed.data.body)   req.body   = parsed.data.body;
-    if (parsed.data.params) Object.assign(req.params, parsed.data.params);
-    if (parsed.data.query)  Object.assign(req.query,  parsed.data.query);
+    if (Object.keys(fieldErrors).length > 0) {
+      const error = createHttpError(422, firstMessage || "Validation failed");
+      error.fieldErrors = fieldErrors;
+      error.statusCode  = 422;
+      return next(error);
+    }
 
     next();
   };
