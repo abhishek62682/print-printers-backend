@@ -10,7 +10,6 @@ const deleteImageFromDisk = (imagePath) => {
   });
 };
 
-// ✅ Helper to safely parse JSON strings
 const parseJSON = (str, defaultValue = null) => {
   if (!str) return defaultValue;
   try {
@@ -26,6 +25,7 @@ const createBlog = async (req, res, next) => {
       title, 
       content, 
       excerpt,
+      authorName,
       tags, 
       coverImageAlt,
       bannerImageAlt,
@@ -40,6 +40,7 @@ const createBlog = async (req, res, next) => {
       title,
       content,
       excerpt: excerpt || null,
+      authorName: authorName || "",
       coverImage,
       coverImageAlt: coverImageAlt || "",
       bannerImage,
@@ -49,7 +50,6 @@ const createBlog = async (req, res, next) => {
       isActive: isActive === "true" || isActive === true,
     };
 
-    // ✅ Parse SEO properly
     if (seo) {
       const parsedSeo = parseJSON(seo, {});
       blogData.seo = {
@@ -162,7 +162,7 @@ const getPublicBlogs = async (req, res, next) => {
     const blogs = await Blog.find(filter)
       .populate("createdBy", "username email")
       .sort({ createdAt: -1 })
-      .select("title slug coverImage coverImageAlt excerpt tags createdAt createdBy");
+      .select("title slug coverImage coverImageAlt excerpt tags createdAt createdBy authorName");
 
     res.status(200).json({
       success: true,
@@ -204,7 +204,7 @@ const getBlogBySlug = async (req, res, next) => {
     })
       .sort({ createdAt: -1 })
       .limit(3)
-      .select("title slug coverImage coverImageAlt excerpt createdAt");
+      .select("title slug coverImage coverImageAlt excerpt createdAt authorName");
 
     res.status(200).json({
       success: true,
@@ -225,6 +225,7 @@ const updateBlog = async (req, res, next) => {
       title, 
       content, 
       excerpt,
+      authorName,
       tags, 
       coverImageAlt,
       bannerImageAlt,
@@ -242,18 +243,18 @@ const updateBlog = async (req, res, next) => {
     if (bannerImage && blog.bannerImage) deleteImageFromDisk(blog.bannerImage);
 
     const updatedData = {
-      ...(title    !== undefined && { title }),
-      ...(content  !== undefined && { content }),
-      ...(excerpt  !== undefined && { excerpt }),
-      ...(tags     !== undefined && { tags: parseJSON(tags, blog.tags) }),
-      ...(coverImageAlt !== undefined && { coverImageAlt }),
+      ...(title      !== undefined && { title }),
+      ...(content    !== undefined && { content }),
+      ...(excerpt    !== undefined && { excerpt }),
+      ...(authorName !== undefined && { authorName }),
+      ...(tags       !== undefined && { tags: parseJSON(tags, blog.tags) }),
+      ...(coverImageAlt  !== undefined && { coverImageAlt }),
       ...(bannerImageAlt !== undefined && { bannerImageAlt }),
-      ...(isActive !== undefined && { isActive: isActive === "true" || isActive === true }),
+      ...(isActive   !== undefined && { isActive: isActive === "true" || isActive === true }),
       ...(coverImage  && { coverImage }),
       ...(bannerImage && { bannerImage }),
     };
 
-    // ✅ Parse SEO properly on update
     if (seo !== undefined) {
       const parsedSeo = parseJSON(seo, {});
       updatedData.seo = {

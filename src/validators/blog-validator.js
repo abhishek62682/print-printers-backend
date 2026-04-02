@@ -16,23 +16,6 @@ const tagsSchema = z
     { message: "Tags must be a valid JSON array of strings e.g. '[\"tag1\",\"tag2\"]'" }
   );
 
-const metaKeywordsSchema = z
-  .string()
-  .optional()
-  .refine(
-    (val) => {
-      if (!val) return true;
-      try {
-        const parsed = JSON.parse(val);
-        return Array.isArray(parsed) && parsed.every((k) => typeof k === "string");
-      } catch {
-        return false;
-      }
-    },
-    { message: "Meta keywords must be a valid JSON array of strings e.g. '[\"keyword1\",\"keyword2\"]'" }
-  );
-
-// ✅ NEW: SEO Schema that handles string input (from FormData)
 const seoSchema = z
   .string()
   .optional()
@@ -67,24 +50,16 @@ export const createBlogSchema = z.object({
 
     content: z.string().min(1, "Content is required").trim(),
 
-    excerpt: z
-      .string()
-      .trim()
-      .optional(),
+    excerpt: z.string().trim().optional(),
+
+    authorName: z.string().trim().optional(),
 
     tags: tagsSchema,
 
-    coverImageAlt: z
-      .string()
-      .trim()
-      .optional(),
+    coverImageAlt: z.string().trim().optional(),
 
-    bannerImageAlt: z
-      .string()
-      .trim()
-      .optional(),
+    bannerImageAlt: z.string().trim().optional(),
 
-   
     seo: seoSchema,
 
     isActive: z
@@ -113,19 +88,14 @@ export const updateBlogSchema = z.object({
         .trim()
         .optional(),
 
+      authorName: z.string().trim().optional(),
+
       tags: tagsSchema,
 
-      coverImageAlt: z
-        .string()
-        .trim()
-        .optional(),
+      coverImageAlt: z.string().trim().optional(),
 
-      bannerImageAlt: z
-        .string()
-        .trim()
-        .optional(),
+      bannerImageAlt: z.string().trim().optional(),
 
-      // ✅ FIXED: seo is now a string that gets validated as JSON
       seo: seoSchema,
 
       isActive: z

@@ -3,7 +3,7 @@ import { z } from "zod";
 export const createRFPSchema = z.object({
   body: z.object({
 
-    turnstileToken: z.string().min(1, "Security verification token is required"),
+    recaptchaToken: z.string().min(1, "Security verification token is required"),
 
     fullName:      z.string().trim().min(2).max(100),
     companyName:   z.string().trim().min(2).max(150),

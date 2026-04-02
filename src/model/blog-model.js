@@ -81,6 +81,12 @@ const blogSchema = new Schema(
       required: [true, "CreatedBy is required"],
     },
 
+    authorName: {
+  type: String,
+  trim: true,
+  default: "",
+},
+
     isActive: {
       type: Boolean,
       default: true,

@@ -7,7 +7,9 @@ import userRouter from "./router/user-router.js"
 import dashboardRouter from "./router/dashboard-router.js";
 import testimonialRouter from "./router/testimonial-router.js"
 import activityRouter from "./router/activitylog-router.js"
-import blogRouter from "./router/blog-router.js"
+import blogRouter from "./router/blog-router.js";
+import cron from 'node-cron';
+import { cleanupOldActivityLogs } from './cron/cleanupActivityLogs.js';
 const app = express();
 import enquiryRouter from "./router/enquiry-router.js"
 import profileRouter from "./router/profile-router.js"
@@ -38,7 +40,16 @@ app.use("/api/request-quotes",enquiryRouter);
 app.use("/api/audit-logs" ,activityRouter )
 
 app.use("/api/dashboard", dashboardRouter )
-app.use(globalErrorHandler)
+app.use(globalErrorHandler);
+
+
+cron.schedule('0 2 * * *', async () => {
+  console.log('[Cron] Running activity log cleanup...');
+  await cleanupOldActivityLogs();
+}, {
+  scheduled: true,
+  timezone: "Asia/Kolkata"
+});
 
 app.get("/" , function (req,res){
     res.json({

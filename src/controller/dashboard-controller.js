@@ -39,11 +39,10 @@ export const getStats = async (req, res, next) => {
       Testimonial.countDocuments({ isActive: true }),
       Testimonial.countDocuments({ isActive: false }),
 
-      Enquiry.find()
-        .sort({ createdAt: -1 })
-        .limit(5)
-        .select("fullName companyName email status productType createdAt")
-        .lean(),
+    Enquiry.find()
+  .sort({ createdAt: -1 })
+  .limit(5)
+  .lean(),
 
       Blog.find()
         .sort({ createdAt: -1 })

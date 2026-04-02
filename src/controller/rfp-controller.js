@@ -4,14 +4,15 @@ import { sendContactNotificationEmail } from "../utils/send-email.js";
 
 export const createRFP = async (req, res, next) => {
   try {
-    const { turnstileToken, ...rfpData } = req.body;
+    const { recaptchaToken, ...rfpData } = req.body;
 
-    const verifyRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+    // ✅ Google reCAPTCHA v2 verification
+    const verifyRes = await fetch('https://www.google.com/recaptcha/api/siteverify', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        secret: process.env.TURNSTILE_SECRET_KEY,
-        response: turnstileToken,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        secret: process.env.RECAPTCHA_SECRET_KEY,
+        response: recaptchaToken,
       }),
     });
 
@@ -23,7 +24,7 @@ export const createRFP = async (req, res, next) => {
     const rfp = await RFP.create(rfpData);
 
     sendContactNotificationEmail(rfp).catch((err) => {
-      console.error("RFP notification email failed:", err.message);
+      console.error("RFP notification email failed:", err);
     });
 
     return res.status(201).json({
