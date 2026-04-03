@@ -131,7 +131,7 @@ export const updateRFP = async (req, res, next) => {
     const rfp = await RFP.findByIdAndUpdate(
       req.params.id,
       { ...(status !== undefined && { status }), ...(notes !== undefined && { notes }) },
-      { new: true, runValidators: true }
+      { returnDocument: "after", runValidators: true } 
     );
 
     if (!rfp) {

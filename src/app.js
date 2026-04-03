@@ -28,6 +28,8 @@ app.use(
 app.use(express.json())
 app.use(express.urlencoded({extended:true}));
 
+app.set("trust proxy", true);
+
 
 app.use("/api/uploads", express.static(path.join(process.cwd(), "uploads")));
 

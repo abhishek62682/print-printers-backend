@@ -18,6 +18,7 @@ import createError from "http-errors";
 import User from "../model/user-model.js";
 import validate from "../middlewares/validate.js";
 import logActivity, { ACTIVITY_ACTIONS } from "../utils/log-activity.js";
+import getClientIP from "../utils/getClientIP.js";
 import {
   loginSchema,
   registerSchema,
@@ -33,8 +34,8 @@ const router = express.Router();
 // ─────────────────────────────────────────────
 const OTP_CONFIG = {
   digits: 6,
-  step: 30,  // must match authenticator apps (Google Authenticator, Authy etc.)
-  window: 1, // allow ±1 step drift (±30s) to cover clock skew
+  step: 30,
+  window: 1,
 };
 
 /** Generates a TOTP token using the user's stored secret */
@@ -62,59 +63,59 @@ function verifyOtp(authSecret, token) {
 // ─────────────────────────────────────────────
 // REGISTER
 // ─────────────────────────────────────────────
-router.post("/register", validate(registerSchema), async (req, res, next) => {
-  try {
-    const { username, email, password } = req.body;
+// router.post("/register", validate(registerSchema), async (req, res, next) => {
+//   try {
+//     const { username, email, password } = req.body;
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return next(createError(409, "Email already registered"));
-    }
+//     const existingUser = await User.findOne({ email });
+//     if (existingUser) {
+//       return next(createError(409, "Email already registered"));
+//     }
 
-    const secret = speakeasy.generateSecret({ length: 20 });
+//     const secret = speakeasy.generateSecret({ length: 20 });
 
-    const user = await User.create({
-      username,
-      email,
-      password,
-      isVerified: false,
-      authSecret: secret.base32,
-      role: "BLOG_MANAGER",
-    });
+//     const user = await User.create({
+//       username,
+//       email,
+//       password,
+//       isVerified: false,
+//       authSecret: secret.base32,
+//       role: "BLOG_MANAGER",
+//     });
 
-    await logActivity({
-      userId: user._id,
-      action: ACTIVITY_ACTIONS.REGISTER,
-      module: "AUTH",
-      targetLabel: user.email,
-      ipAddress: req.ip,
-      userAgent: req.get("user-agent"),
-      status: "SUCCESS",
-    });
+//     await logActivity({
+//       userId: user._id,
+//       action: ACTIVITY_ACTIONS.REGISTER,
+//       module: "AUTH",
+//       targetLabel: user.email,
+//       ipAddress: getClientIP(req),
+//       userAgent: req.get("user-agent"),
+//       status: "SUCCESS",
+//     });
 
-    res.status(201).json({
-      success: true,
-      message: "Registration successful. Please login to continue.",
-      data: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        isVerified: user.isVerified,
-        role: user.role,
-      },
-    });
-  } catch (err) {
-    await logActivity({
-      userId: null,
-      action: ACTIVITY_ACTIONS.REGISTER,
-      module: "AUTH",
-      ipAddress: req.ip,
-      userAgent: req.get("user-agent"),
-      status: "FAILED",
-    });
-    next(err);
-  }
-});
+//     res.status(201).json({
+//       success: true,
+//       message: "Registration successful. Please login to continue.",
+//       data: {
+//         id: user._id,
+//         username: user.username,
+//         email: user.email,
+//         isVerified: user.isVerified,
+//         role: user.role,
+//       },
+//     });
+//   } catch (err) {
+//     await logActivity({
+//       userId: null,
+//       action: ACTIVITY_ACTIONS.REGISTER,
+//       module: "AUTH",
+//       ipAddress: getClientIP(req),
+//       userAgent: req.get("user-agent"),
+//       status: "FAILED",
+//     });
+//     next(err);
+//   }
+// });
 
 
 router.post("/login", validate(loginSchema), async (req, res, next) => {
@@ -123,12 +124,11 @@ router.post("/login", validate(loginSchema), async (req, res, next) => {
 
     const user = await User.findOne({ email });
     if (!user) {
-      
       await logActivity({
         userId: null,
         action: ACTIVITY_ACTIONS.LOGIN_FAILED,
         module: "AUTH",
-        ipAddress: req.ip,
+        ipAddress: getClientIP(req),
         userAgent: req.get("user-agent"),
         status: "FAILED",
       });
@@ -137,31 +137,29 @@ router.post("/login", validate(loginSchema), async (req, res, next) => {
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-
       await logActivity({
         userId: user._id,
         action: ACTIVITY_ACTIONS.LOGIN_FAILED,
+        targetLabel: user.email,
         module: "AUTH",
-        ipAddress: req.ip,
+        ipAddress: getClientIP(req),
         userAgent: req.get("user-agent"),
         status: "FAILED",
       });
       return next(createError(401, "Invalid credentials"));
     }
 
-    
     await logActivity({
       userId: user._id,
       action: ACTIVITY_ACTIONS.OTP_SENT,
       module: "AUTH",
       targetLabel: user.email,
-      ipAddress: req.ip,
+      ipAddress: getClientIP(req),
       userAgent: req.get("user-agent"),
       status: "SUCCESS",
     });
 
     generateOtp(user.authSecret);
-
 
     res.status(200).json({
       success: true,
@@ -187,12 +185,11 @@ router.post("/verify-otp", validate(verifyOtpSchema), async (req, res, next) => 
         userId: null,
         action: ACTIVITY_ACTIONS.OTP_FAILED,
         module: "AUTH",
-        targetLabel: email, // ✅ add this
-        ipAddress: req.ip,
+        targetLabel: email,
+        ipAddress: getClientIP(req),
         userAgent: req.get("user-agent"),
         status: "FAILED",
       });
-
       return next(createError(400, "No OTP request found. Please login again."));
     }
 
@@ -202,25 +199,23 @@ router.post("/verify-otp", validate(verifyOtpSchema), async (req, res, next) => 
         userId: user._id,
         action: ACTIVITY_ACTIONS.OTP_FAILED,
         module: "AUTH",
-        targetLabel: user.email, // ✅ add this (or email)
-        ipAddress: req.ip,
+        targetLabel: user.email,
+        ipAddress: getClientIP(req),
         userAgent: req.get("user-agent"),
         status: "FAILED",
       });
-
       return next(createError(400, "Invalid or expired OTP. Please try again."));
     }
 
     user.isVerified = true;
     await user.save();
 
-    // Better to log OTP verified separately
     await logActivity({
       userId: user._id,
       action: ACTIVITY_ACTIONS.OTP_VERIFIED,
       module: "AUTH",
       targetLabel: user.email,
-      ipAddress: req.ip,
+      ipAddress: getClientIP(req),
       userAgent: req.get("user-agent"),
       status: "SUCCESS",
     });
@@ -249,12 +244,11 @@ router.post("/forgot-password", validate(forgotPasswordSchema), async (req, res,
 
     const user = await User.findOne({ email });
     if (!user) {
-      // ✅ Log attempt even if user not found (security audit)
       await logActivity({
         userId: null,
         action: ACTIVITY_ACTIONS.PASSWORD_RESET_REQUESTED,
         module: "AUTH",
-        ipAddress: req.ip,
+        ipAddress: getClientIP(req),
         userAgent: req.get("user-agent"),
         status: "FAILED",
       });
@@ -265,23 +259,20 @@ router.post("/forgot-password", validate(forgotPasswordSchema), async (req, res,
       });
     }
 
-    // Mark that a password reset was initiated (sets expiresAt on the model)
     user.initiatePasswordReset();
     await user.save();
 
-    // ✅ Log password reset OTP sent
     await logActivity({
       userId: user._id,
       action: ACTIVITY_ACTIONS.PASSWORD_RESET_OTP_SENT,
       module: "AUTH",
       targetLabel: user.email,
-      ipAddress: req.ip,
+      ipAddress: getClientIP(req),
       userAgent: req.get("user-agent"),
       status: "SUCCESS",
     });
 
     generateOtp(user.authSecret);
-    
 
     res.status(200).json({
       success: true,
@@ -306,7 +297,7 @@ router.post("/verify-reset-otp", validate(verifyOtpSchema), async (req, res, nex
         userId: null,
         action: ACTIVITY_ACTIONS.PASSWORD_RESET_VERIFIED,
         module: "AUTH",
-        ipAddress: req.ip,
+        ipAddress: getClientIP(req),
         userAgent: req.get("user-agent"),
         status: "FAILED",
       });
@@ -318,7 +309,7 @@ router.post("/verify-reset-otp", validate(verifyOtpSchema), async (req, res, nex
         userId: user._id,
         action: ACTIVITY_ACTIONS.PASSWORD_RESET_VERIFIED,
         module: "AUTH",
-        ipAddress: req.ip,
+        ipAddress: getClientIP(req),
         userAgent: req.get("user-agent"),
         status: "FAILED",
       });
@@ -330,7 +321,7 @@ router.post("/verify-reset-otp", validate(verifyOtpSchema), async (req, res, nex
         userId: user._id,
         action: ACTIVITY_ACTIONS.PASSWORD_RESET_VERIFIED,
         module: "AUTH",
-        ipAddress: req.ip,
+        ipAddress: getClientIP(req),
         userAgent: req.get("user-agent"),
         status: "FAILED",
       });
@@ -343,7 +334,7 @@ router.post("/verify-reset-otp", validate(verifyOtpSchema), async (req, res, nex
         userId: user._id,
         action: ACTIVITY_ACTIONS.PASSWORD_RESET_VERIFIED,
         module: "AUTH",
-        ipAddress: req.ip,
+        ipAddress: getClientIP(req),
         userAgent: req.get("user-agent"),
         status: "FAILED",
       });
@@ -353,13 +344,12 @@ router.post("/verify-reset-otp", validate(verifyOtpSchema), async (req, res, nex
     user.passwordResetVerified = true;
     await user.save();
 
-    // ✅ Log successful password reset OTP verification
     await logActivity({
       userId: user._id,
       action: ACTIVITY_ACTIONS.PASSWORD_RESET_VERIFIED,
       module: "AUTH",
       targetLabel: user.email,
-      ipAddress: req.ip,
+      ipAddress: getClientIP(req),
       userAgent: req.get("user-agent"),
       status: "SUCCESS",
     });
@@ -389,20 +379,19 @@ router.post("/reset-password", validate(resetPasswordSchema), async (req, res, n
         userId: null,
         action: ACTIVITY_ACTIONS.PASSWORD_RESET_COMPLETED,
         module: "AUTH",
-        ipAddress: req.ip,
+        ipAddress: getClientIP(req),
         userAgent: req.get("user-agent"),
         status: "FAILED",
       });
       return next(createError(404, "User not found"));
     }
 
-    // isPasswordResetValid() should check: passwordResetVerified === true && not expired
     if (!user.isPasswordResetValid()) {
       await logActivity({
         userId: user._id,
         action: ACTIVITY_ACTIONS.PASSWORD_RESET_COMPLETED,
         module: "AUTH",
-        ipAddress: req.ip,
+        ipAddress: getClientIP(req),
         userAgent: req.get("user-agent"),
         status: "FAILED",
       });
@@ -412,16 +401,15 @@ router.post("/reset-password", validate(resetPasswordSchema), async (req, res, n
     }
 
     user.password = newPassword;
-    user.clearPasswordReset(); // clears passwordResetVerified + passwordResetExpiresAt
+    user.clearPasswordReset();
     await user.save();
 
-    // ✅ Log successful password reset
     await logActivity({
       userId: user._id,
       action: ACTIVITY_ACTIONS.PASSWORD_RESET_COMPLETED,
       module: "AUTH",
       targetLabel: user.email,
-      ipAddress: req.ip,
+      ipAddress: getClientIP(req),
       userAgent: req.get("user-agent"),
       status: "SUCCESS",
     });
@@ -436,7 +424,7 @@ router.post("/reset-password", validate(resetPasswordSchema), async (req, res, n
       userId: null,
       action: ACTIVITY_ACTIONS.PASSWORD_RESET_COMPLETED,
       module: "AUTH",
-      ipAddress: req.ip,
+      ipAddress: getClientIP(req),
       userAgent: req.get("user-agent"),
       status: "FAILED",
     });

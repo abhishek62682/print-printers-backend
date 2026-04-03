@@ -2,6 +2,7 @@ import createError from "http-errors";
 import fs from "node:fs";
 import User from "../model/user-model.js";
 import logActivity from "../utils/log-activity.js";
+import getClientIP from "../utils/getClientIP.js";
 
 // ── Helper: delete old image from disk ────────────────────────────────────
 const deleteImageFromDisk = (imagePath) => {
@@ -16,7 +17,6 @@ export const getProfile = async (req, res, next) => {
   try {
     const user = await User.findById(req?.user?._id).select("-password -authSecret");
     if (!user) return next(createError(404, "User not found."));
-
 
     return res.status(200).json({
       success: true,
@@ -35,7 +35,7 @@ export const getProfile = async (req, res, next) => {
       userId: req.user._id,
       action: "READ",
       module: "PROFILE",
-      ipAddress: req.ip,
+      ipAddress: getClientIP(req),
       userAgent: req.get("user-agent"),
       status: "FAILED",
     });
@@ -66,7 +66,7 @@ export const updateProfile = async (req, res, next) => {
       action: "UPDATE",
       module: "PROFILE",
       targetLabel: `username: ${user.username}`,
-      ipAddress: req.ip,
+      ipAddress: getClientIP(req),
       userAgent: req.get("user-agent"),
       status: "SUCCESS",
     });
@@ -88,7 +88,7 @@ export const updateProfile = async (req, res, next) => {
       userId: req.user._id,
       action: "UPDATE",
       module: "PROFILE",
-      ipAddress: req.ip,
+      ipAddress: getClientIP(req),
       userAgent: req.get("user-agent"),
       status: "FAILED",
     });
@@ -111,7 +111,7 @@ export const changePassword = async (req, res, next) => {
         action: "UPDATE",
         module: "PROFILE",
         targetLabel: "password-change",
-        ipAddress: req.ip,
+        ipAddress: getClientIP(req),
         userAgent: req.get("user-agent"),
         status: "FAILED",
       });
@@ -126,7 +126,7 @@ export const changePassword = async (req, res, next) => {
       action: "UPDATE",
       module: "PROFILE",
       targetLabel: "password-change",
-      ipAddress: req.ip,
+      ipAddress: getClientIP(req),
       userAgent: req.get("user-agent"),
       status: "SUCCESS",
     });
@@ -142,7 +142,7 @@ export const changePassword = async (req, res, next) => {
       action: "UPDATE",
       module: "PROFILE",
       targetLabel: "password-change",
-      ipAddress: req.ip,
+      ipAddress: getClientIP(req),
       userAgent: req.get("user-agent"),
       status: "FAILED",
     });

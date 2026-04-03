@@ -22,9 +22,7 @@ import {
   getBlogsQuerySchema,
 } from "../validators/blog-validator.js";
 
-// ─────────────────────────────────────────────
-// Multer Setup
-// ─────────────────────────────────────────────
+
 fs.mkdirSync("uploads/blogs", { recursive: true });
 
 const storage = multer.diskStorage({
@@ -47,7 +45,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+  limits: { fileSize: 6 * 1024 * 1024 }, 
 });
 
 const uploadFields = upload.fields([

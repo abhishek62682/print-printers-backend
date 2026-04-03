@@ -2,6 +2,7 @@ import createHttpError from "http-errors";
 import fs from "fs";
 import Blog from "../model/blog-model.js";
 import logActivity from "../utils/log-activity.js";
+import getClientIP from "../utils/getClientIP.js";
 
 const deleteImageFromDisk = (imagePath) => {
   if (!imagePath) return;
@@ -69,7 +70,7 @@ const createBlog = async (req, res, next) => {
       module: "BLOG",
       targetId: blog._id,
       targetLabel: blog.title,
-      ipAddress: req.ip,
+      ipAddress: getClientIP(req),
       userAgent: req.get("user-agent"),
       status: "SUCCESS",
     });
@@ -84,7 +85,7 @@ const createBlog = async (req, res, next) => {
       userId: req.user._id,
       action: "CREATE",
       module: "BLOG",
-      ipAddress: req.ip,
+      ipAddress: getClientIP(req),
       userAgent: req.get("user-agent"),
       status: "FAILED",
     });
@@ -278,7 +279,7 @@ const updateBlog = async (req, res, next) => {
       module: "BLOG",
       targetId: updated._id,
       targetLabel: updated.title,
-      ipAddress: req.ip,
+      ipAddress: getClientIP(req),
       userAgent: req.get("user-agent"),
       status: "SUCCESS",
     });
@@ -294,7 +295,7 @@ const updateBlog = async (req, res, next) => {
       action: "UPDATE",
       module: "BLOG",
       targetId: req.params.id,
-      ipAddress: req.ip,
+      ipAddress: getClientIP(req),
       userAgent: req.get("user-agent"),
       status: "FAILED",
     });
@@ -316,7 +317,7 @@ const deleteBlog = async (req, res, next) => {
       module: "BLOG",
       targetId: req.params.id,
       targetLabel: blog.title,
-      ipAddress: req.ip,
+      ipAddress: getClientIP(req),
       userAgent: req.get("user-agent"),
       status: "SUCCESS",
     });
@@ -332,7 +333,7 @@ const deleteBlog = async (req, res, next) => {
       action: "DELETE",
       module: "BLOG",
       targetId: req.params.id,
-      ipAddress: req.ip,
+      ipAddress: getClientIP(req),
       userAgent: req.get("user-agent"),
       status: "FAILED",
     });
