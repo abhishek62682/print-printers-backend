@@ -4,4 +4,4 @@
 .env.development
 .env.production
 
-/uploads
+uploads/
