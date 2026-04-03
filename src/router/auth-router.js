@@ -235,32 +235,22 @@ router.post("/verify-otp", validate(verifyOtpSchema), async (req, res, next) => 
   }
 });
 
-// ─────────────────────────────────────────────
-// FORGOT PASSWORD — Step 1: send reset OTP
-// ─────────────────────────────────────────────
 router.post("/forgot-password", validate(forgotPasswordSchema), async (req, res, next) => {
   try {
     const { email } = req.body;
 
     const user = await User.findOne({ email });
+
+    // ✅ Strict — email exist nahi toh 404 return karo
     if (!user) {
-      await logActivity({
-        userId: null,
-        action: ACTIVITY_ACTIONS.PASSWORD_RESET_REQUESTED,
-        module: "AUTH",
-        ipAddress: getClientIP(req),
-        userAgent: req.get("user-agent"),
-        status: "FAILED",
-      });
-      return res.status(200).json({
-        success: true,
-        message: "If this email is registered, an OTP has been sent.",
-        data: null,
-      });
+      return next(createError(404, "No account found with this email address."));
     }
 
     user.initiatePasswordReset();
     await user.save();
+
+    const otp = generateOtp(user.authSecret);
+    console.log(`[OTP for ${user.email}]: ${otp}`);
 
     await logActivity({
       userId: user._id,
@@ -272,11 +262,9 @@ router.post("/forgot-password", validate(forgotPasswordSchema), async (req, res,
       status: "SUCCESS",
     });
 
-    generateOtp(user.authSecret);
-
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      message: "If this email is registered, an OTP has been sent.",
+      message: "OTP sent successfully.",
       data: null,
     });
   } catch (err) {
