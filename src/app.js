@@ -13,10 +13,13 @@ import { cleanupOldActivityLogs } from './cron/cleanupActivityLogs.js';
 const app = express();
 import enquiryRouter from "./router/enquiry-router.js"
 import profileRouter from "./router/profile-router.js"
+import { config } from "./config/config.js";
 const allowedOrigins = [
-  process.env.FRONTEND_DOMAIN_LANDING,
-  process.env.FRONTEND_DOMAIN_ADMIN
+  ...config.frontendDomainLanding,
+  ...config.frontendDomainAdmin
 ];
+
+
 
 
 app.use(
