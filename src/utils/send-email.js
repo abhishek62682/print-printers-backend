@@ -80,11 +80,16 @@ export const sendContactNotificationEmail = async (rfp) => {
 
   const statusBadge = (status) => {
     const colors = {
-      new: "#10b981",
-      contacted: "#3b82f6",
-      quoted: "#f59e0b",
-      converted: "#8b5cf6",
-      closed: "#6b7280",
+      "New RFP":             "#3b82f6",  
+      "Contacted":           "#f59e0b",  
+      "Quote Prepared":      "#8b5cf6",  
+      "Quote Sent":          "#a855f7",  
+      "PO Received":         "#06b6d4",  
+      "Pre-Press":           "#f97316",  
+      "In Production":       "#eab308",  
+      "In QC":               "#ec4899",  
+      "In Packaging":        "#6366f1",  
+      "Shipped & Completed": "#10b981",  
     };
     const color = colors[status] || "#6b7280";
     return `<span style="
@@ -94,7 +99,7 @@ export const sendContactNotificationEmail = async (rfp) => {
       border-radius:12px;
       font-size:12px;
       font-weight:600;
-    ">${status?.toUpperCase() || "NEW"}</span>`;
+    ">${status?.toUpperCase() || "NEW RFP"}</span>`;
   };
 
   const html = `

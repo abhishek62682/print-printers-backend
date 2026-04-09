@@ -11,11 +11,10 @@ export const getStats = async (req, res, next) => {
       inactiveBlogs,
 
       totalEnquiries,
-      newEnquiries,
-      contactedEnquiries,
-      quotedEnquiries,
-      convertedEnquiries,
-      closedEnquiries,
+      newRFPEnquiries,
+      inProductionEnquiries,
+      inQCEnquiries,
+      shippedEnquiries,
 
       totalTestimonials,
       activeTestimonials,
@@ -29,20 +28,19 @@ export const getStats = async (req, res, next) => {
       Blog.countDocuments({ isActive: false }),
 
       Enquiry.countDocuments(),
-      Enquiry.countDocuments({ status: "new" }),
-      Enquiry.countDocuments({ status: "contacted" }),
-      Enquiry.countDocuments({ status: "quoted" }),
-      Enquiry.countDocuments({ status: "converted" }),
-      Enquiry.countDocuments({ status: "closed" }),
+      Enquiry.countDocuments({ status: "New RFP" }),
+      Enquiry.countDocuments({ status: "In Production" }),
+      Enquiry.countDocuments({ status: "In QC" }),
+      Enquiry.countDocuments({ status: "Shipped & Completed" }),
 
       Testimonial.countDocuments(),
       Testimonial.countDocuments({ isActive: true }),
       Testimonial.countDocuments({ isActive: false }),
 
-    Enquiry.find()
-  .sort({ createdAt: -1 })
-  .limit(5)
-  .lean(),
+      Enquiry.find()
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .lean(),
 
       Blog.find()
         .sort({ createdAt: -1 })
@@ -57,7 +55,13 @@ export const getStats = async (req, res, next) => {
       message: "Stats fetched successfully.",
       data: {
         blogs:        { total: totalBlogs,        active: activeBlogs,        inactive: inactiveBlogs },
-        enquiries:    { total: totalEnquiries,    new: newEnquiries,          contacted: contactedEnquiries, quoted: quotedEnquiries, converted: convertedEnquiries, closed: closedEnquiries },
+        enquiries:    {
+          total:               totalEnquiries,
+          newRFP:              newRFPEnquiries,
+          inProduction:        inProductionEnquiries,
+          inQC:                inQCEnquiries,
+          shippedAndCompleted: shippedEnquiries,
+        },
         testimonials: { total: totalTestimonials, active: activeTestimonials, inactive: inactiveTestimonials },
         recentEnquiries,
         recentBlogs,

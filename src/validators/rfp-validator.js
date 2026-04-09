@@ -1,9 +1,21 @@
 import { z } from "zod";
 
+const statusEnum = z.enum([
+  "New RFP",
+  "Contacted",
+  "Quote Prepared",
+  "Quote Sent",
+  "PO Received",
+  "Pre-Press",
+  "In Production",
+  "In QC",
+  "In Packaging",
+  "Shipped & Completed",
+]);
 export const createRFPSchema = z.object({
   body: z.object({
 
-    recaptchaToken: z.string().min(1, "Security verification token is required"),
+    recaptchaToken: z.string().min(1, "Security vexrification token is required"),
 
     fullName:      z.string().trim().min(2).max(100),
     companyName:   z.string().trim().min(2).max(150),
@@ -145,12 +157,10 @@ export const updateRFPSchema = z.object({
   params: z.object({
     id: z.string().min(1, "RFP ID is required"),
   }),
-  body: z.object({
-    status: z.enum(["new", "contacted", "quoted", "converted", "closed"], {
-      invalid_type_error: "Invalid status value",
-    }).optional(),
-    notes: z.string().trim().max(2000, "Notes must not exceed 2000 characters").optional(),
-  }),
+body: z.object({
+  status: statusEnum.optional(),
+  notes: z.string().trim().max(2000).optional(),
+}),
 });
 
 export const getRFPsQuerySchema = z.object({
@@ -168,9 +178,7 @@ export const getRFPsQuerySchema = z.object({
 
       country: z.string().trim().optional(),
 
-      status: z.enum(["new", "contacted", "quoted", "converted", "closed"], {
-        errorMap: () => ({ message: "Invalid status value" }),
-      }).optional(),
+     status: statusEnum.optional(),
 
       startDate: z
         .string().optional()
@@ -202,9 +210,7 @@ export const exportRFPsQuerySchema = z.object({
     .object({
       country: z.string().trim().optional(),
 
-      status: z.enum(["new", "contacted", "quoted", "converted", "closed"], {
-        errorMap: () => ({ message: "Invalid status value" }),
-      }).optional(),
+     status: statusEnum.optional(),
 
       startDate: z
         .string().optional()

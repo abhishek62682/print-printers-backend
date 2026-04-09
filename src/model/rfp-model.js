@@ -272,10 +272,21 @@ const requestQuoteSchema = new mongoose.Schema(
     },
 
     status: {
-      type: String,
-      enum: ["new", "contacted", "quoted", "converted", "closed"],
-      default: "new",
-    },
+  type: String,
+  enum: [
+    "New RFP",
+    "Contacted",
+    "Quote Prepared",
+    "Quote Sent",
+    "PO Received",
+    "Pre-Press",
+    "In Production",
+    "In QC",
+    "In Packaging",
+    "Shipped & Completed",
+  ],
+  default: "New RFP",
+},
     notes: {
       type: String, trim: true,
       maxlength: 2000,
